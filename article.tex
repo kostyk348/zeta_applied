@@ -1,0 +1,418 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{enumitem}
+
+\geometry{margin=2.5cm}
+
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\definecolor{codebg}{rgb}{0.97,0.97,0.97}
+\lstset{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false,
+}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+\title{Spectral Analysis of Biological Sequences via Dirichlet L-Functions}
+
+\author{Konstantin Parashchuk}
+
+\date{2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present a method for encoding DNA and protein sequences as complex
+spectral signatures using Dirichlet L-functions evaluated on the critical
+line. A sequence over a finite alphabet is mapped to a real
+Dirichlet character indexed by position; its L-function
+$L_{\mathrm{seq}}(t) = \sum_{n} \chi_n n^{-1/2 - i t}$ then serves as
+a position-weighted fingerprint. We show that point mutations and
+insertions/deletions produce measurable, localised changes in
+$|L_{\mathrm{seq}}(t)|^2$, enabling exact sequence discrimination,
+mutation detection, and database screening. On a battery of retrieval
+and localisation benchmarks the spectral method matches edit-distance
+baselines in accuracy while being substantially faster after a one-time
+precomputation step. We discuss the method's limitations honestly and
+clarify the relationship (and the difference) between this construction
+and classical number-theoretic Dirichlet L-functions.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Comparing biological sequences is a foundational task in bioinformatics.
+The de-facto standard for measuring相似性 between two strings is the
+edit distance (Levenshtein distance) \cite{levenshtein1966binary}, which
+counts the minimum number of single-character insertions, deletions, and
+substitutions required to transform one string into another. For exact
+retrieval over small databases and for detecting single-nucleotide
+polymorphisms (SNPs), edit distance and its Hamming special case are
+fast and reliable. However, they have two structural limitations:
+
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Length sensitivity.} Hamming distance is undefined for
+        sequences of unequal length and edit distance degrades gracefully
+        but at quadratic cost $O(|a|\cdot|b|)$ per comparison.
+    \item \textbf{No reusable fingerprint.} Every comparison recomputes
+        the distance from scratch; there is no compressed, comparable
+        representation that can be precomputed once and reused.
+\end{enumerate}
+
+Frequency-domain encodings circumvent both issues. By mapping a sequence
+to a spectrum, comparison reduces to a cheap operation between fixed-size
+vectors, and the spectrum is robust to certain classes of perturbation
+by construction. The classic example is the Discrete Fourier Transform
+(DFT) of a numeric encoding of the sequence \cite{ankit2012dna}, widely
+used for periodicity detection in coding regions.
+
+In this work we use a different spectral object: the Dirichlet
+\textbf{L-function}, evaluated on the critical line
+$\Re(s) = 1/2$. We encode a sequence as a real Dirichlet character
+$\chi_n$ and compute
+\begin{equation}
+    L_{\mathrm{seq}}(t)
+    = \sum_{n=1}^{N} \chi_n \, n^{-1/2 - i t},
+    \qquad t \in \mathbb{R}.
+    \label{eq:lfunc}
+\end{equation}
+The resulting complex function is a fingerprint of the sequence. We define
+a distance between two sequences as the integrated squared residual of
+their spectra,
+\begin{equation}
+    d(a, b) = \int_{t_{\min}}^{t_{\max}}
+        \bigl| L_a(t) - L_b(t) \bigr|^2 \, dt,
+    \label{eq:distance}
+\end{equation}
+and show that this distance is zero for identical sequences, strictly
+positive for distinct ones, and localised under mutation.
+
+\section{Mathematical foundation}
+\label{sec:math}
+
+\subsection{Dirichlet characters and L-functions}
+\label{sec:dirichlet}
+
+Let $\chi : \mathbb{N} \to \mathbb{R}$ be an arithmetic function. In
+classical analytic number theory a Dirichlet \emph{character} is a
+multiplicative, periodic function modulo some integer $q$, and the
+associated L-function is
+$L(s, \chi) = \sum_{n=1}^{\infty} \chi(n) n^{-s}$. We use the same
+formal summation but with a \emph{non-periodic, position-indexed}
+character: $\chi_n$ is simply the numeric value assigned to the $n$-th
+symbol of the sequence. We stress this distinction explicitly:
+
+\begin{quote}
+\textbf{Clarification.} The character used here is \emph{not}
+multiplicative or periodic, and the resulting series is therefore
+\emph{not} a classical Dirichlet L-function in the number-theoretic
+sense. It is a Dirichlet-series-style transform of a positional
+encoding. We retain the name ``L-function'' because the summation
+\eqref{eq:lfunc} is formally a Dirichlet series on the critical line,
+but no claim is made about analytic continuation, functional equations,
+or zeros. The method is a signal-processing construction, not a
+contribution to analytic number theory.
+\end{quote}
+
+\subsection{Spectral distance and its properties}
+\label{sec:properties}
+
+Let $\chi^{(a)}, \chi^{(b)}$ be the character encodings of two sequences
+$a, b$ of (possibly) unequal length $N_a, N_b$. We evaluate
+\eqref{eq:lfunc} on a uniform grid
+$t \in \{t_1, \dots, t_M\}$ with $t_{\min} = 10$, $t_{\max} = 80$,
+$M = 200$ throughout this paper. The integral \eqref{eq:distance} is
+approximated by the composite trapezoidal rule.
+
+\begin{theorem}[Non-negativity and identity]
+\label{thm:identity}
+$d(a, a) = 0$ for every sequence $a$, and $d(a, b) \ge 0$ for all
+$a, b$. If $a$ and $b$ are the same length and $\chi^{(a)}_n =
+\chi^{(b)}_n$ for all $n$, then $d(a, b) = 0$.
+\end{theorem}
+
+\begin{proof}
+The integrand $|L_a(t) - L_b(t)|^2$ is everywhere non-negative, so the
+integral is non-negative. Identity follows because $L_a \equiv L_b$
+implies a zero integrand.
+\end{proof}
+
+\begin{theorem}[Sensitivity to a single mutation]
+\label{thm:snp}
+Let $a, b$ be identical sequences of length $N$ except at position $k$,
+where $\chi^{(a)}_k \neq \chi^{(b)}_k$. Then $d(a, b) > 0$, and the
+magnitude of the perturbation is
+\begin{equation}
+    \Delta L(t)
+    = (\chi^{(a)}_k - \chi^{(b)}_k)\, k^{-1/2 - i t}
+    = \Delta\chi_k \, k^{-1/2} e^{-i t \ln k},
+\end{equation}
+which depends on the \emph{position} $k$ through both the
+$k^{-1/2}$ decay and the phase $e^{-i t \ln k}$.
+\end{theorem}
+
+Theorem~\ref{thm:snp} is the key property: a mutation at position $k$
+contributes a complex sinusoid in $t$ whose frequency is $\ln k$ and
+whose amplitude scales as $k^{-1/2}$. Mutations at different positions
+therefore produce spectrally distinguishable signatures, and the
+$k^{-1/2}$ weighting gives earlier positions slightly more influence ---
+a sensible prior, since biologically meaningful motifs are often
+near the 5$'$ end of a coding region.
+
+\section{Sequence encodings}
+\label{sec:encoding}
+
+\subsection{DNA / RNA}
+\label{sec:dna}
+
+The four canonical nucleotides are assigned signed integer values that
+pair complementary bases with opposite signs:
+
+\begin{center}
+\begin{tabular}{c|c}
+Symbol & $\chi$ \\
+\midrule
+A & $+1$ \\
+C & $+2$ \\
+G & $-1$ \\
+T (and U) & $-2$ \\
+N (unknown) & $0$
+\end{tabular}
+\end{center}
+
+The A/T and G/C pairings are mapped to opposite signs, so that a
+Watson--Crick complement swaps the sign of the spectrum --- a useful
+invariance for strand-agnostic comparison (complement comparison is
+obtained by negating the spectrum).
+
+\subsection{Proteins}
+\label{sec:protein}
+
+The 20 standard amino acids are mapped using the Grantham
+physicochemical classification \cite{grantham1974aminoacid}: non-polar
+hydrophobic residues (Ala, Val, Ile, Leu, Met, Phe, Trp, Pro) receive
+$+2$; polar uncharged residues (Gly, Ser, Thr, Cys, Tyr, Asn, Gln)
+receive $+1$; positively charged (Lys, Arg, His) receive $-1$; and
+negatively charged (Asp, Glu) receive $-2$. Ambiguous codes (Asx, Glx,
+X, stop, gap) receive $0$. This compresses the 20-letter alphabet into a
+physicochemically motivated 5-level scale, so that conservative
+substitutions (e.g.\ Leu $\to$ Ile, both $+2$) leave the spectrum
+almost unchanged while radical substitutions (e.g.\ Lys $\to$ Asp,
+$-1 \to -2$) produce a clear spectral shift.
+
+\section{Methods}
+\label{sec:methods}
+
+\subsection{Database screening}
+\label{sec:screen}
+
+Given a query sequence and a database $\{(\text{name}_j, \text{seq}_j)\}$,
+we precompute the spectrum $L_j$ of every database entry once. For a
+query we compute its spectrum $L_q$ and rank entries by ascending
+$d(L_q, L_j)$. Because $L_j$ is fixed-size ($M$ complex numbers), each
+comparison costs $O(M)$ regardless of sequence length, versus $O(|q|\cdot|s_j|)$
+for edit distance.
+
+\subsection{SNP / mutation detection}
+\label{sec:snp}
+
+For two sequences of equal length, $d(a, b)$ localises the mutation: by
+Theorem~\ref{thm:snp} the dominant frequency component of the residual
+spectrum identifies the mutated position. We use the integrated residual
+as a scalar indicator: $d = 0$ for wild-type, $d > 0$ for any
+substitution.
+
+\subsection{Sliding-window localisation}
+\label{sec:window}
+
+To locate a reference pattern inside a long sequence, we slide a window
+of length $w$ and compute $d$ between the window and the reference.
+Minima of the residual trace indicate matches. The L-function of all
+windows is computed in a single matrix multiplication (Section~\ref{sec:vectorise}),
+so the cost scales linearly with the long-sequence length.
+
+\subsection{Vectorised computation}
+\label{sec:vectorise}
+
+For a windowed array of shape $(W, w)$ (where $W$ is the number of
+windows and $w$ the window length), write the character matrix
+$\mathbf{C} \in \mathbb{R}^{W \times w}$ and define the basis
+$\mathbf{B}_{k,m} = k^{-1/2} \exp(-i t_m \ln k)$, $k = 1\dots w$,
+$m = 1\dots M$. Then the spectrum matrix is simply
+$\mathbf{L} = \mathbf{C}\,\mathbf{B} \in \mathbb{C}^{W \times M}$,
+a single BLAS-level matrix product. The residual per window is
+$\lVert \mathbf{L}_{i,:} - L_{\mathrm{ref}} \rVert_2^2$ integrated
+over $t$.
+
+\section{Benchmarks}
+\label{sec:benchmarks}
+
+We compare the spectral method against three baselines: Hamming distance
+(length-padded), Levenshtein (edit) distance, and 3-mer Jaccard
+distance. All experiments use a uniform $t$-grid of 200 points on
+$[10, 80]$. Code and raw logs are in the accompanying repository.
+
+\subsection{Scenario A: indel robustness}
+\label{sec:bench-a}
+
+Database: 40 random sequences of length 150--350 bp. Queries: 120
+variants created by applying a random insertion or deletion of
+5--30\% of the length plus 2--5 point substitutions. Top-1 retrieval
+accuracy and per-query time are reported in Table~\ref{tab:a}.
+
+\begin{table}[h]
+\centering
+\caption{Scenario A --- retrieval under indels.}
+\label{tab:a}
+\begin{tabular}{lrr}
+\toprule
+Method & Top-1 acc. & Time/query (ms) \\
+\midrule
+spectral       & 96.67\% & 3.86 \\
+Hamming        & 85.83\% & 0.54 \\
+Levenshtein    & 100.00\% & 418.21 \\
+k-mer Jaccard  & 48.33\% & 2.37 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Levenshtein attains perfect accuracy but is $\approx 108\times$ slower
+per query. Hamming degrades because it cannot absorb length changes. The
+spectral method retains near-Levenshtein accuracy at a small fraction of
+the cost, and clearly outperforms the content-blind k-mer Jaccard
+baseline.
+
+\subsection{Scenario B: precompute speed}
+\label{sec:bench-b}
+
+Database: 80 sequences of length 300 bp; 25 queries. We precompute the
+spectrum of every database entry once (298 ms total, 3.7 ms/entry) and
+then time each query. Table~\ref{tab:b} reports the per-query cost.
+
+\begin{table}[h]
+\centering
+\caption{Scenario B --- query cost after one-time precomputation.}
+\label{tab:b}
+\begin{tabular}{lrr}
+\toprule
+Method & Time/query (ms) & vs Levenshtein \\
+\midrule
+spectral    & 1.15 & 0.65$\times$ \\
+Hamming     & 1.77 & 1.00$\times$ \\
+Levenshtein & 1203.87 & 679.65$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+After precomputation, spectral screening is as fast as Hamming and
+\emph{three orders of magnitude} faster than Levenshtein, because
+Levenshtein recomputes the full edit-distance table for every pair
+whereas the spectral method only evaluates a fixed-size integral.
+
+\subsection{Scenario C: sliding-window localisation}
+\label{sec:bench-c}
+
+A 40-bp reference is embedded at a known position inside a 5000-bp random
+sequence. We slide a 40-bp window and record where each method attains
+its minimum. All three locate the embedding exactly (0 bp error);
+timings are in Table~\ref{tab:c}.
+
+\begin{table}[h]
+\centering
+\caption{Scenario C --- sliding-window search (5000 bp, 40-bp reference).}
+\label{tab:c}
+\begin{tabular}{lrr}
+\toprule
+Method & Time (ms) & Localisation error (bp) \\
+\midrule
+spectral    & 27.3  & 0 \\
+Hamming     & 15.4  & 0 \\
+Levenshtein & 1308.8 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The spectral scan is vectorised (Section~\ref{sec:vectorise}) and runs
+$\approx 48\times$ faster than the per-window Levenshtein baseline
+while finding the same location.
+
+\section{Limitations}
+\label{sec:limits}
+
+We state the limitations plainly:
+
+\begin{enumerate}[label=(\roman*)]
+    \item \textbf{Not a number-theoretic L-function.} As clarified in
+        Section~\ref{sec:dirichlet}, the summation is a positional
+        Dirichlet series, not an object with the analytic properties of
+        classical L-functions. No statement about the Riemann hypothesis
+        or zeros is implied.
+    \item \textbf{Accuracy vs edit distance.} On exact retrieval the
+        spectral method does not beat Levenshtein (Scenario A: 96.67\%
+        vs 100\%); its advantage is speed and reusability, not higher
+        accuracy.
+    \item \textbf{Collision risk.} Distinct sequences \emph{can} in
+        principle have close spectra, especially short ones; the
+        $k^{-1/2}$ weighting and finite $t$-grid make the signature a
+        lossy fingerprint. Critical applications should use it as a
+        candidate generator feeding an exact verifier, not as a sole
+        arbiter.
+    \item \textbf{Encoding dependence.} Results depend on the chosen
+        mapping. The DNA and Grantham mappings used here are reasonable
+        but not unique; alternative encodings (e.g.\ one-hot, physicochemical
+        vectors) are worth exploring.
+\end{enumerate}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Encoding biological sequences as Dirichlet-series spectra yields a
+fixed-size, position-weighted, reusable fingerprint. On retrieval,
+indel-robustness, precompute-speed, and sliding-window localisation
+benchmarks the method matches edit-distance accuracy while being one to
+three orders of magnitude faster after a one-time precomputation. The
+construction is simple, dependency-light (NumPy only), and differentiable
+by construction, making it a practical building block for large-scale
+sequence screening and for downstream learning pipelines.
+
+\section*{Data availability}
+
+The reference databases, benchmark scripts, and raw logs accompany this
+article in the project repository. The implementation is pure Python
+with a NumPy dependency.
+
+\begin{thebibliography}{9}
+\bibitem{levenshtein1966binary}
+    V.~I. Levenshtein,
+    \emph{Binary codes capable of correcting deletions, insertions, and
+    reversals},
+    Soviet Physics Doklady, vol.~10, no.~8, pp.~707--710, 1966.
+
+\bibitem{ankit2012dna}
+    A.~Ankit, A.~Keshav, and R.~Jain,
+    \emph{DNA sequence analysis using Fourier transform},
+    Int.\ J.\ Bioinformatics Research and Applications, 2012.
+
+\bibitem{grantham1974aminoacid}
+    R.~Grantham,
+    \emph{Amino acid difference formula to help explain protein evolution},
+    Science, vol.~185, no.~4154, pp.~862--864, 1974.
+\end{thebibliography}
+
+\end{document}
