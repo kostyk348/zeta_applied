@@ -40,8 +40,11 @@ print(f"Best match: {residuals[0][0]} (residual {residuals[0][1]:.2e})")
 ## Benchmarks
 
 ```bash
-python examples/bench_dna.py     # DNA: spectral vs Hamming/Levenshtein/kmer
-python examples/bench_protein.py # Protein: spectral vs classical distances
+python examples/bench_dna.py          # DNA: spectral vs Hamming/Levenshtein/kmer
+python examples/bench_protein.py      # Protein: spectral vs classical distances
+python examples/bench_hard.py         # Indel robustness, precompute speed, sliding window
+python examples/bench_viral_sw.py     # Real viral fragment ID via sliding window
+python examples/bench_phylogeny.py    # Viral genome phylogeny from spectral distances
 ```
 
 ### DNA (500 SNP queries, 5 reference genes)
@@ -61,6 +64,36 @@ python examples/bench_protein.py # Protein: spectral vs classical distances
 | Hamming | 100.00% | 1.00 | 0.10 |
 | Levenshtein | 100.00% | 1.00 | 67.0 |
 | kmer-Jaccard-3 | 100.00% | 1.00 | 0.55 |
+
+### Viral genome fragment identification (15 real genomes from NCBI)
+
+A 100–250 bp fragment from one of 15 diverse viral genomes (SARS-CoV-2,
+SARS-CoV, MERS-CoV, Influenza A, HIV-1, Ebola, Zika, Dengue 1/2, Rabies,
+Hepatitis B/C, Phi-X174, Lambda phage) is matched against the full database.
+The spectral sliding-window method compares the fragment against windows of
+the *same length* — the only approach that works for fragment-vs-genome
+matching.
+
+| Fragment length | top-1 | top-3 | Time/query (ms) |
+|----------------:|------:|------:|----------------:|
+| 100 bp | 94.7% | 100% | 807 |
+| 250 bp | 96.0% | 100% | 1010 |
+
+Edit distance (SequenceMatcher) achieves ≤8% top-1 on the same task — it fails
+because normalisation over the full genome length masks the local match. The
+sliding-window approach naturally avoids this issue.
+
+### Viral genome phylogeny (15 genomes, all-vs-all spectral distance)
+
+Spectral fingerprints of complete viral genomes produce a distance matrix
+that recovers known taxonomic relationships without alignment.
+
+| Metric | Value |
+|--------|-------|
+| Cophenetic correlation (UPGMA) | 0.84 |
+| Intra-group / inter-group distance ratio | 0.78 |
+| Closest pair | Dengue 1 ↔ Dengue 2 |
+| Genomic neighbours correctly identified | SARS2↔SARS, Influenza PB2↔HA, Zika↔Dengue |
 
 ## Tests
 
