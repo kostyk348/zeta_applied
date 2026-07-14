@@ -1,5 +1,8 @@
 # biospectral
 
+[![CI](https://github.com/kostyk348/biospectral/actions/workflows/ci.yml/badge.svg)](https://github.com/kostyk348/biospectral/actions/workflows/ci.yml)
+
+
 Dirichlet L-function spectral analysis of DNA and protein sequences.
 
 A sequence over a finite alphabet is mapped to a real Dirichlet character
@@ -28,11 +31,17 @@ from biospectral import (
 )
 
 # Spectral fingerprint of a DNA sequence
+
+[![CI](https://github.com/kostyk348/biospectral/actions/workflows/ci.yml/badge.svg)](https://github.com/kostyk348/biospectral/actions/workflows/ci.yml)
+
 t = np.linspace(10.0, 80.0, 400)
 chi = dna_to_character_seq("ATGGTGCACCTGACTCCTGAGG")
 L = l_function(t, chi)
 
 # Screen a query against the reference database
+
+[![CI](https://github.com/kostyk348/biospectral/actions/workflows/ci.yml/badge.svg)](https://github.com/kostyk348/biospectral/actions/workflows/ci.yml)
+
 residuals = database_screen("ATGGTGCACCTGACTCCTGTGG", REFERENCE_GENE_DATABASE)
 print(f"Best match: {residuals[0][0]} (residual {residuals[0][1]:.2e})")
 ```
